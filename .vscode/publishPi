@@ -1,0 +1,5 @@
+dotnet publish -r linux-arm RpiControlApi.csproj
+ssh pi@192.168.8.113 "rm /home/pi/Documents/git/RemoteDebugging/RpiControlApi/*"
+scp bin/Debug/netcoreapp3.1/linux-arm/* pi@192.168.8.113:/home/pi/Documents/git/RemoteDebugging/RpiControlApi
+# ssh pi@192.168.8.113 "rm /home/pi/Documents/git/RemoteDebugging/RpiControlApi/RpiControlApi*"
+# scp bin/Debug/netcoreapp3.1/linux-arm/RpiControlApi.* pi@192.168.8.113:/home/pi/Documents/git/RemoteDebugging/RpiControlApi
