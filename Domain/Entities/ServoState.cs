@@ -1,4 +1,4 @@
-namespace RpiControl
+namespace RpiControl.Domain.Entities
 {
     public class ServoState
     {

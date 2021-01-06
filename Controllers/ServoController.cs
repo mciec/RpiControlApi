@@ -4,27 +4,27 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using RpiControlApi.Domain.Entities;
+using RpiControl.Domain.Entities;
 
 namespace RpiControlApi.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("[controller]/[action]")]
     public class ServoController : ControllerBase
     {
         private readonly ILogger<ServoController> _logger;
-        private readonly Sonar _sonar;
+        private readonly CommunicationObject _communicationObject;
 
-        public ServoController(ILogger<ServoController> logger, Sonar sonar)
+        public ServoController(ILogger<ServoController> logger, CommunicationObject communicationObject)
         {
             _logger = logger;
-            _sonar = sonar;
+            _communicationObject = communicationObject;
         }
 
         [HttpGet]
         public double GetDistance()
         {
-            return _sonar.Distance;
+            return _communicationObject.Distance;
         }
 
         

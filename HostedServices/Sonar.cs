@@ -2,42 +2,30 @@ using System.Device.Gpio;
 using System.Threading.Tasks;
 using Iot.Device.Hcsr04;
 using System.Threading;
-using System.Diagnostics;
 using System;
 using Microsoft.Extensions.Hosting;
+using RpiControl.Domain.Entities;
+using Microsoft.Extensions.Options;
 
 namespace RpiControlApi.HostedServices
 {
-    public enum BorderCrossed
-    {
-        Outside,
-        Inside
-    }
-
     public class Sonar : BackgroundService
     {
         private readonly double _borderDistanceCentimeters;
         private readonly int _triggerPin, _echoPin;
         private readonly PinNumberingScheme _pinNumberingScheme;
         private Hcsr04 _hcsr04;
-
-        private EventWaitHandle _objectInside;
-        private EventWaitHandle _objectOutside;
-
-        public EventHandler<BorderCrossed> BorderCrossedEvent;
+        private CommunicationObject _communicationObject;
 
         public double Distance { get; private set; }
         private double _prevDistance;
-        private Task _measurementTask;
-
-        public Sonar(int triggerPin, int echoPin, EventWaitHandle objectInside, EventWaitHandle objectOutside, double borderDistanceCentimeters = 10.0, PinNumberingScheme pinNumberingScheme = PinNumberingScheme.Logical)
+        public Sonar(IOptions<SonarConfig> sonarConfig, CommunicationObject communicationObject, PinNumberingScheme pinNumberingScheme = PinNumberingScheme.Logical)
         {
-            _triggerPin = triggerPin;
-            _echoPin = echoPin;
+            _triggerPin = sonarConfig.Value.TriggerPin;
+            _echoPin = sonarConfig.Value.EchoPin;
+            _borderDistanceCentimeters = sonarConfig.Value.BorderDistanceCentimeters;
             _pinNumberingScheme = pinNumberingScheme;
-            _borderDistanceCentimeters = borderDistanceCentimeters;
-            _objectInside = objectInside;
-            _objectOutside = objectOutside;
+            _communicationObject = communicationObject;
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -49,21 +37,23 @@ namespace RpiControlApi.HostedServices
                 try
                 {
                     Distance = _hcsr04.Distance.Centimeters;
+                    _communicationObject.Distance = Distance;
                 }
                 catch { }
-                //Console.WriteLine($"Distance: {Distance}");
                 if (_prevDistance <= _borderDistanceCentimeters && Distance > _borderDistanceCentimeters)
                 {
-                    _objectInside?.Reset();
-                    _objectOutside?.Set();
-                    BorderCrossedEvent(this, BorderCrossed.Outside);
+                    _communicationObject.ObjectInside?.Reset();
+                    _communicationObject.ObjectOutside?.Set();
+                    if (_communicationObject.BorderCrossedEvent != null)
+                        _communicationObject.BorderCrossedEvent(this, BorderCrossed.Outside);
                 }
                 else
                 if (_prevDistance > _borderDistanceCentimeters && Distance <= _borderDistanceCentimeters)
                 {
-                    _objectOutside?.Reset();
-                    _objectInside?.Set();
-                    BorderCrossedEvent(this, BorderCrossed.Inside);
+                    _communicationObject.ObjectOutside?.Reset();
+                    _communicationObject.ObjectInside?.Set();
+                    if (_communicationObject.BorderCrossedEvent != null)
+                        _communicationObject.BorderCrossedEvent(this, BorderCrossed.Inside);
                 }
                 _prevDistance = Distance;
                 await Task.Delay(100);
